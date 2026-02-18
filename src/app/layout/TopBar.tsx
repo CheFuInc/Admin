@@ -5,6 +5,7 @@
 //   User as UserIcon, 
 //   Menu 
 // } from 'lucide-react';
+import { Menu } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Button } from '../components/ui/button';
 import {
@@ -16,13 +17,16 @@ import {
     DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
 
-export function TopBar() {
+type TopBarProps = {
+    onToggleSidebar: () => void;
+};
+
+export function TopBar({ onToggleSidebar }: TopBarProps) {
     return (
         <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b bg-background px-6">
             <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" className="lg:hidden">
-                    {/* <Menu className="h-5 w-5" /> */}
-                    M
+                <Button variant="ghost" size="icon" className="lg:hidden" onClick={onToggleSidebar} aria-label="Toggle sidebar">
+                    <Menu className="h-5 w-5" />
                 </Button>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <span className="font-semibold text-foreground">CheFu Technologies (PTY) LTD</span>
@@ -42,14 +46,7 @@ export function TopBar() {
             </div>
 
             <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon">
-                    {/* <Bell className="h-5 w-5" /> */}
-                    B
-                </Button>
-                <Button variant="ghost" size="icon">
-                    {/* <HelpCircle className="h-5 w-5" /> */}
-                    ?
-                </Button>
+
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
