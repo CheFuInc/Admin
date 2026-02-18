@@ -15,6 +15,11 @@ type NavParentItem = {
 
 type NavItemType = NavLeafItem | NavParentItem;
 
+type SidebarProps = {
+    isMobileOpen: boolean;
+    onCloseMobile: () => void;
+};
+
 // Icons temporarily removed to debug module loading
 const navigation: NavItemType[] = [
     { name: 'Dashboard', href: '/', exact: true },
@@ -64,37 +69,49 @@ const navigation: NavItemType[] = [
     },
 ];
 
-export function Sidebar() {
+export function Sidebar({ isMobileOpen, onCloseMobile }: SidebarProps) {
     return (
-        <div className="flex h-full w-64 flex-col border-r bg-sidebar text-sidebar-foreground">
-            <div className="flex h-16 items-center px-6 border-b border-sidebar-border">
-                <div className="flex items-center gap-2 font-bold text-xl">
-                    
-                    CheFu Inc Admin
+        <>
+            <button
+                type="button"
+                aria-label="Close sidebar"
+                onClick={onCloseMobile}
+                className={cn(
+                    'fixed inset-0 z-30 bg-black/40 transition-opacity lg:hidden',
+                    isMobileOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
+                )}
+            />
+            <aside
+                className={cn(
+                    'fixed inset-y-0 left-0 z-40 flex h-full w-64 flex-col border-r bg-sidebar text-sidebar-foreground transition-transform lg:static lg:z-auto lg:translate-x-0',
+                    isMobileOpen ? 'translate-x-0' : '-translate-x-full'
+                )}
+            >
+                <div className="flex h-16 items-center border-b border-sidebar-border px-6">
+                    <div className="flex items-center gap-2 text-xl font-bold">CheFu Inc Admin</div>
                 </div>
-            </div>
-            <div className="flex-1 overflow-y-auto py-4">
-                <nav className="space-y-1 px-3">
-                    {navigation.map((item) => (
-                        <NavItem key={item.name} item={item} />
-                    ))}
-                </nav>
-            </div>
-            <div className="border-t border-sidebar-border p-4">
-                <div className="text-xs text-muted-foreground">
-                    <p>v2.4.0 (Build 8921)</p>
-                    <a href="#" className="hover:text-foreground">What's new</a>
+                <div className="flex-1 overflow-y-auto py-4">
+                    <nav className="space-y-1 px-3">
+                        {navigation.map((item) => (
+                            <NavItem key={item.name} item={item} onNavigate={onCloseMobile} />
+                        ))}
+                    </nav>
                 </div>
-            </div>
-        </div>
+                <div className="border-t border-sidebar-border p-4">
+                    <div className="text-xs text-muted-foreground">
+                        <p>v2.4.0 (Build 8921)</p>
+                        <a href="#" className="hover:text-foreground">What's new</a>
+                    </div>
+                </div>
+            </aside>
+        </>
     );
 }
 
-function NavItem({ item }: { item: NavItemType }) {
+function NavItem({ item, onNavigate }: { item: NavItemType; onNavigate: () => void }) {
     const location = useLocation();
     const [isOpen, setIsOpen] = useState(false);
 
-    // Check if current path starts with any child href
     const isActive = 'children' in item
         ? item.children.some((child) => location.pathname.startsWith(child.href))
         : item.exact ? location.pathname === item.href : location.pathname.startsWith(item.href);
@@ -106,14 +123,13 @@ function NavItem({ item }: { item: NavItemType }) {
                 <button
                     onClick={() => setIsOpen(!isOpen)}
                     className={cn(
-                        "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                        isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground"
+                        'flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                        isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-muted-foreground'
                     )}
                 >
-                    {/* <item.icon className="h-4 w-4" /> */}
                     <span className="flex-1 text-left">{item.name}</span>
                     <svg
-                        className={cn("h-4 w-4 transition-transform", isExpanded && "rotate-90")}
+                        className={cn('h-4 w-4 transition-transform', isExpanded && 'rotate-90')}
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -127,10 +143,11 @@ function NavItem({ item }: { item: NavItemType }) {
                             <NavLink
                                 key={child.name}
                                 to={child.href}
+                                onClick={onNavigate}
                                 className={({ isActive }) =>
                                     cn(
-                                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors hover:text-foreground",
-                                        isActive ? "font-medium text-primary" : "text-muted-foreground"
+                                        'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors hover:text-foreground',
+                                        isActive ? 'font-medium text-primary' : 'text-muted-foreground'
                                     )
                                 }
                             >
@@ -146,14 +163,14 @@ function NavItem({ item }: { item: NavItemType }) {
     return (
         <NavLink
             to={item.href}
+            onClick={onNavigate}
             className={({ isActive }) =>
                 cn(
-                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                    isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground"
+                    'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                    isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-muted-foreground'
                 )
             }
         >
-            {/* <item.icon className="h-4 w-4" /> */}
             {item.name}
         </NavLink>
     );
