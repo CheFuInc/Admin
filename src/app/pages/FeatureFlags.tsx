@@ -10,7 +10,7 @@ import {
 } from "../components/ui/table";
 import { Badge } from "../components/ui/badge";
 import { Switch } from "../components/ui/switch";
-import { Plus, Search, Filter, Flag, Settings2 } from "lucide-react";
+import { Plus, Search, Filter, Settings2 } from "lucide-react";
 import { Progress } from "../components/ui/progress";
 
 const flags = [
