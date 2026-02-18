@@ -1,6 +1,6 @@
 import { google } from "googleapis";
-import serviceAccount from "../lib/service-account.json";
 import type { ServiceAccount } from "../types/ServiceAccount";
+import { getServiceAccountFromEnv } from "../lib/serviceAccount";
 
 export interface FirebaseWebApp {
     appId?: string;
@@ -16,7 +16,7 @@ export interface FirebaseWebApp {
 export async function fetchFirebaseWebApps(
     projectId = "cheforumreal",
 ): Promise<FirebaseWebApp[]> {
-    const credentials: ServiceAccount = serviceAccount;
+    const credentials: ServiceAccount = getServiceAccountFromEnv();
 
     const auth = new google.auth.GoogleAuth({
         credentials,

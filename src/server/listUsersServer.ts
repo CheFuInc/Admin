@@ -8,7 +8,7 @@ app.use(cors());
 app.use(express.json());
 
 // SIMPLE AUTH (replace with your real auth/SSO + RBAC middleware)
-app.use((req, res, next) => {
+app.use((_req, _res, next) => {
     // e.g., check an admin bearer token or your SSO session
     // if (!req.headers.authorization?.startsWith("Bearer ")) return res.status(401).json({ error: "Unauthorized" });
     next();
