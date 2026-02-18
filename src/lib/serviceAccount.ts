@@ -1,4 +1,4 @@
-import type { ServiceAccount } from "../types/ServiceAccount";
+import type { ServiceAccount } from "../types/ServiceAccount.js";
 
 function normalizePrivateKey(value: string | undefined): string | undefined {
     return value ? value.replace(/\\n/g, "\n") : undefined;

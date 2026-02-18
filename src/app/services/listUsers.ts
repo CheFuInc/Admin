@@ -1,5 +1,5 @@
 import admin from "firebase-admin";
-import { getAdmin } from "../../lib/firebase";
+import { getAdmin } from "../../lib/firebase.js";
 
 export interface ListUsersParams {
   pageSize?: number;           // 1..1000 (Firebase max is 1000)

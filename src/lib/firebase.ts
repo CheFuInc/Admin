@@ -1,5 +1,5 @@
 import admin from "firebase-admin";
-import { getServiceAccountFromEnv } from "./serviceAccount";
+import { getServiceAccountFromEnv } from "./serviceAccount.js";
 
 let initialized = false;
 

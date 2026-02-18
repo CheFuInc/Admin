@@ -1,5 +1,5 @@
-import { getAdmin } from "../src/lib/firebase";
-import { listUsers } from "../src/app/services/listUsers";
+import { getAdmin } from "../src/lib/firebase.js";
+import { listUsers } from "../src/app/services/listUsers.js";
 
 type QueryValue = string | string[] | undefined;
 type QueryMap = Record<string, QueryValue>;
