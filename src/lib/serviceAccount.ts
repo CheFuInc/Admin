@@ -1,4 +1,6 @@
 import type { ServiceAccount } from "../types/ServiceAccount.js";
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
 
 function normalizePrivateKey(value: string | undefined): string | undefined {
     return value ? value.replace(/\\n/g, "\n") : undefined;
@@ -35,6 +37,16 @@ export function getServiceAccountFromEnv(): ServiceAccount {
         .map(([key]) => key);
 
     if (missing.length > 0) {
+        const localPath = path.resolve(process.cwd(), "src/lib/service-account.json");
+        if (existsSync(localPath)) {
+            const content = readFileSync(localPath, "utf8");
+            const parsed = JSON.parse(content) as ServiceAccount;
+            if (parsed.private_key) {
+                parsed.private_key = normalizePrivateKey(parsed.private_key) ?? parsed.private_key;
+            }
+            return parsed;
+        }
+
         throw new Error(`Missing Firebase service-account env vars: ${missing.join(", ")}`);
     }
 

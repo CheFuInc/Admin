@@ -28,6 +28,23 @@ export interface ListUsersResponse {
   count: number; // number returned in this page
 }
 
+export async function updateUserRole(uid: string, role: string): Promise<void> {
+  const app = getAdmin();
+  const auth: admin.auth.Auth = app.auth();
+
+  const user = await auth.getUser(uid);
+  const existingClaims = (user.customClaims ?? {}) as Record<string, unknown>;
+  const nextClaims = { ...existingClaims };
+
+  if (role === "User") {
+    delete nextClaims.role;
+  } else {
+    nextClaims.role = role;
+  }
+
+  await auth.setCustomUserClaims(uid, nextClaims);
+}
+
 export async function listUsers(params: ListUsersParams): Promise<ListUsersResponse> {
   const app = getAdmin();
   const auth: admin.auth.Auth = app.auth();

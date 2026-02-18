@@ -1,6 +1,8 @@
+import { MoreHorizontal, Search, ShieldCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { MoreHorizontal, Plus, Search, Filter, ShieldCheck } from "lucide-react";
-import { fetchUsers, type ListedUser } from "../api/listUsers";
+import { toast } from "sonner";
+import { changeUserRole, fetchUsers, type ListedUser, type UserRole } from "../api/listUsers";
+import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -12,7 +14,6 @@ import {
     TableHeader,
     TableRow,
 } from "../components/ui/table";
-import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 
 function initials(value: string): string {
     const trimmed = value.trim();
@@ -29,11 +30,15 @@ function userRole(user: ListedUser): string {
     return typeof role === "string" && role.trim() ? role : "User";
 }
 
+const ROLE_OPTIONS: UserRole[] = ["Owner", "Admin", "Editor", "Viewer", "User"];
+
 export function Users() {
     const [users, setUsers] = useState<ListedUser[]>([]);
     const [search, setSearch] = useState("");
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [roleSavingUid, setRoleSavingUid] = useState<string | null>(null);
+    const [roleError, setRoleError] = useState<string | null>(null);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -84,10 +89,6 @@ export function Users() {
                         Manage user identities, roles, and access controls across all organizations.
                     </p>
                 </div>
-                <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Invite User
-                </Button>
             </div>
 
             <div className="flex items-center gap-4">
@@ -100,10 +101,7 @@ export function Users() {
                         className="pl-8"
                     />
                 </div>
-                <Button variant="outline">
-                    <Filter className="mr-2 h-4 w-4" />
-                    Filters
-                </Button>
+
             </div>
 
             {isLoading ? <p className="text-sm text-muted-foreground">Loading users...</p> : null}
@@ -132,7 +130,7 @@ export function Users() {
                         {filteredUsers.map((user) => {
                             const name = user.displayName?.trim() || user.email || user.uid;
                             const email = user.email || user.phoneNumber || "No email";
-                            const role = userRole(user);
+                            const role = userRole(user) as UserRole;
                             const mfaEnabled = user.providerIds.includes("phone");
 
                             return (
@@ -148,7 +146,53 @@ export function Users() {
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <Badge variant="outline">{role}</Badge>
+                                        <select
+                                            value={role}
+                                            disabled={roleSavingUid === user.uid}
+                                            onChange={async (event) => {
+                                                const nextRole = event.target.value as UserRole;
+                                                if (nextRole === role) {
+                                                    return;
+                                                }
+
+                                                setRoleError(null);
+                                                setRoleSavingUid(user.uid);
+
+                                                try {
+                                                    await changeUserRole(user.uid, nextRole);
+                                                    setUsers((prev) =>
+                                                        prev.map((u) =>
+                                                            u.uid === user.uid
+                                                                ? {
+                                                                    ...u,
+                                                                    customClaims:
+                                                                        nextRole === "User"
+                                                                            ? { ...(u.customClaims ?? {}), role: undefined }
+                                                                            : { ...(u.customClaims ?? {}), role: nextRole },
+                                                                }
+                                                                : u,
+                                                        ),
+                                                    );
+                                                    toast.success(`Role updated to ${nextRole} for ${name}`);
+                                                } catch (err) {
+                                                    const message =
+                                                        err instanceof Error
+                                                            ? err.message
+                                                            : "Failed to update role.";
+                                                    setRoleError(message);
+                                                    toast.error(message);
+                                                } finally {
+                                                    setRoleSavingUid(null);
+                                                }
+                                            }}
+                                            className="h-8 rounded-md border bg-background px-2 text-sm"
+                                        >
+                                            {ROLE_OPTIONS.map((option) => (
+                                                <option key={option} value={option}>
+                                                    {option}
+                                                </option>
+                                            ))}
+                                        </select>
                                     </TableCell>
                                     <TableCell>
                                         {mfaEnabled ? (
@@ -173,6 +217,7 @@ export function Users() {
                     </TableBody>
                 </Table>
             </div>
+            {roleError ? <p className="text-sm text-destructive">{roleError}</p> : null}
         </div>
     );
 }

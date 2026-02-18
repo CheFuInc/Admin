@@ -1,3 +1,5 @@
+import { getAuthToken } from "./authToken";
+
 export interface FirebaseWebApp {
   appId?: string;
   displayName?: string;
@@ -15,12 +17,17 @@ type ListAppsResponse = {
 
 export async function listApps(signal?: AbortSignal): Promise<FirebaseWebApp[]> {
   const endpoint = import.meta.env.VITE_LIST_APPS_API_URL ?? "/api/listApps";
+  const token = await getAuthToken();
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
 
   const response = await fetch(endpoint, {
     method: "GET",
-    headers: {
-      Accept: "application/json",
-    },
+    headers,
     signal,
   });
 

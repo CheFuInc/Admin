@@ -1,17 +1,16 @@
 import admin from "firebase-admin";
 import { getServiceAccountFromEnv } from "./serviceAccount.js";
 
-let initialized = false;
-
 export function getAdmin(): admin.app.App {
-  if (!initialized) {
-    const serviceAccount = getServiceAccountFromEnv();
-
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
-      // databaseURL: "https://<your-db>.firebaseio.com" // only if using RTDB
-    });
-    initialized = true;
+  const existing = admin.apps.find((app) => app?.name === "[DEFAULT]");
+  if (existing) {
+    return existing;
   }
-  return admin.app();
+
+  const serviceAccount = getServiceAccountFromEnv();
+
+  return admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+    // databaseURL: "https://<your-db>.firebaseio.com" // only if using RTDB
+  });
 }
