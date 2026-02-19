@@ -27,6 +27,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     res.status(200).json({ apps });
   } catch (error) {
     console.error("List apps error:", error);
-    res.status(500).json({ error: "Failed to list apps" });
+    res.status(500).json({
+      error: error instanceof Error ? error.message : "Failed to list apps",
+    });
   }
 }

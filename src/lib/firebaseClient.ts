@@ -39,7 +39,7 @@ export function isFirebaseClientConfigured(): boolean {
 }
 
 export function shouldEnforceAdminAuth(): boolean {
-  return import.meta.env.PROD || import.meta.env.VITE_ENFORCE_ADMIN_AUTH === "true";
+  return import.meta.env.VITE_ENFORCE_ADMIN_AUTH !== "false";
 }
 
 export function getFirebaseClientApp(): FirebaseApp {

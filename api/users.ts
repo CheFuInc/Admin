@@ -21,6 +21,8 @@ function first(value: QueryValue): string | undefined {
     return Array.isArray(value) ? value[0] : value;
 }
 
+const MAX_PAGE_SIZE = 100;
+
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (req.method !== "GET" && req.method !== "PATCH") {
     res.status(405).json({ error: "Method not allowed" });
@@ -37,9 +39,16 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     if (req.method === "GET") {
       const pageSizeRaw = first(req.query?.pageSize);
       const disabledRaw = first(req.query?.disabled);
+      let pageSize: number | undefined;
+      if (typeof pageSizeRaw === "string" && pageSizeRaw.trim() !== "") {
+        const parsedPageSize = Number.parseInt(pageSizeRaw, 10);
+        if (!Number.isNaN(parsedPageSize)) {
+          pageSize = Math.min(Math.max(parsedPageSize, 1), MAX_PAGE_SIZE);
+        }
+      }
 
       const data = await listUsers({
-        pageSize: pageSizeRaw ? Number(pageSizeRaw) : undefined,
+        pageSize,
         pageToken: first(req.query?.pageToken),
         emailContains: first(req.query?.emailContains),
         disabled:

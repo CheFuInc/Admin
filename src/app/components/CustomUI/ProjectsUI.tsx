@@ -15,14 +15,31 @@ import { toast } from "sonner";
 const ProjectsUI = ({
     isLoading,
     error,
-    totalApps,
     apps,
 }: {
     isLoading: boolean;
     error: string | null;
-    totalApps: number;
     apps: FirebaseWebApp[];
 }) => {
+    const handleCopyAppId = async (appId?: string) => {
+        if (!appId) {
+            toast.error("App ID is unavailable.");
+            return;
+        }
+
+        if (!window.navigator?.clipboard?.writeText) {
+            toast.error("Clipboard API is unavailable.");
+            return;
+        }
+
+        try {
+            await window.navigator.clipboard.writeText(appId);
+            toast.success("Copied to clipboard");
+        } catch {
+            toast.error("Failed to copy app ID.");
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -40,15 +57,16 @@ const ProjectsUI = ({
                 <p className="text-sm text-muted-foreground">Loading projects...</p>
             ) : null}
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
-            {!isLoading && !error && totalApps === 0 ? (
+            {!isLoading && !error && apps.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                     No apps were returned by the API.
                 </p>
             ) : null}
 
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {apps.map((app) => {
-                    const id = app.appId ?? app.name ?? "unknown";
+            {!isLoading && !error && apps.length > 0 ? (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {apps.map((app, index) => {
+                    const id = app.appId ?? app.name ?? `unknown-${index}`;
                     const appName = app.displayName ?? app.appId ?? "Unnamed App";
                     const status = app.state ?? "UNKNOWN";
                     const consoleUrl =
@@ -74,11 +92,17 @@ const ProjectsUI = ({
                                                 </div>
                                                 <Copy
                                                     onClick={() => {
-                                                        if (app.appId) {
-                                                            void window.navigator.clipboard.writeText(app.appId);
-                                                            toast.success('Copied to clipboard')
+                                                        void handleCopyAppId(app.appId);
+                                                    }}
+                                                    onKeyDown={(event) => {
+                                                        if (event.key === "Enter" || event.key === " ") {
+                                                            event.preventDefault();
+                                                            void handleCopyAppId(app.appId);
                                                         }
                                                     }}
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    aria-label="Copy app ID"
                                                     className="size-4 cursor-pointer hover:text-primary"
                                                 />
                                             </div>
@@ -136,7 +160,8 @@ const ProjectsUI = ({
                         </Card>
                     );
                 })}
-            </div>
+                </div>
+            ) : null}
         </div>
     );
 };

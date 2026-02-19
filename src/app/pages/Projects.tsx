@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { listApps, type FirebaseWebApp } from "../api/listApps";
 import ProjectsUI from "../components/CustomUI/ProjectsUI";
 
@@ -13,12 +13,14 @@ export function Projects() {
         const run = async () => {
             setIsLoading(true);
             setError(null);
+            let didAbort = false;
 
             try {
                 const data = await listApps(controller.signal);
                 setApps(data);
             } catch (err) {
                 if (err instanceof Error && err.name === "AbortError") {
+                    didAbort = true;
                     return;
                 }
 
@@ -26,7 +28,9 @@ export function Projects() {
                     err instanceof Error ? err.message : "Failed to load projects.",
                 );
             } finally {
-                setIsLoading(false);
+                if (!didAbort) {
+                    setIsLoading(false);
+                }
             }
         };
 
@@ -37,14 +41,11 @@ export function Projects() {
         };
     }, []);
 
-    const totalApps = useMemo(() => apps.length, [apps]);
-
     return (
         <ProjectsUI
             isLoading={isLoading}
             error={error}
             apps={apps}
-            totalApps={totalApps}
         />
     );
 }

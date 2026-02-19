@@ -1,16 +1,22 @@
 import type { ServiceAccount } from "../types/ServiceAccount.js";
-import { existsSync, readFileSync } from "node:fs";
-import path from "node:path";
 
 function normalizePrivateKey(value: string | undefined): string | undefined {
     return value ? value.replace(/\\n/g, "\n") : undefined;
 }
 
-export function getServiceAccountFromEnv(): ServiceAccount {
+export function getServiceAccountFromEnv(): ServiceAccount | null {
     const rawJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
 
     if (rawJson) {
-        const parsed = JSON.parse(rawJson) as ServiceAccount;
+        let parsed: ServiceAccount;
+        try {
+            parsed = JSON.parse(rawJson) as ServiceAccount;
+        } catch (error) {
+            if (error instanceof SyntaxError) {
+                throw new Error(`Invalid FIREBASE_SERVICE_ACCOUNT_JSON: ${error.message}`);
+            }
+            throw error;
+        }
         if (parsed.private_key) {
             parsed.private_key = normalizePrivateKey(parsed.private_key) ?? parsed.private_key;
         }
@@ -32,22 +38,24 @@ export function getServiceAccountFromEnv(): ServiceAccount {
         universe_domain: process.env.FIREBASE_UNIVERSE_DOMAIN,
     };
 
+    const hasExplicitCredentials = Boolean(
+        process.env.FIREBASE_TYPE ||
+            process.env.FIREBASE_PROJECT_ID ||
+            process.env.FIREBASE_PRIVATE_KEY_ID ||
+            process.env.FIREBASE_PRIVATE_KEY ||
+            process.env.FIREBASE_CLIENT_EMAIL ||
+            process.env.FIREBASE_CLIENT_ID ||
+            process.env.FIREBASE_CLIENT_X509_CERT_URL,
+    );
     const missing = Object.entries(required)
         .filter(([key, value]) => key !== "universe_domain" && !value)
         .map(([key]) => key);
 
     if (missing.length > 0) {
-        const localPath = path.resolve(process.cwd(), "src/lib/service-account.json");
-        if (existsSync(localPath)) {
-            const content = readFileSync(localPath, "utf8");
-            const parsed = JSON.parse(content) as ServiceAccount;
-            if (parsed.private_key) {
-                parsed.private_key = normalizePrivateKey(parsed.private_key) ?? parsed.private_key;
-            }
-            return parsed;
+        if (hasExplicitCredentials) {
+            throw new Error(`Missing Firebase service-account env vars: ${missing.join(", ")}`);
         }
-
-        throw new Error(`Missing Firebase service-account env vars: ${missing.join(", ")}`);
+        return null;
     }
 
     return required as ServiceAccount;

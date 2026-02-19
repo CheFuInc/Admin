@@ -47,6 +47,7 @@ export function Dashboard() {
         const run = async () => {
             setIsLoading(true);
             setError(null);
+            let didAbort = false;
 
             try {
                 const [usersResult, appsResult] = await Promise.all([
@@ -58,12 +59,15 @@ export function Dashboard() {
                 setTotalProjects(appsResult.length);
             } catch (err) {
                 if (err instanceof Error && err.name === "AbortError") {
+                    didAbort = true;
                     return;
                 }
 
                 setError(err instanceof Error ? err.message : "Failed to load dashboard data.");
             } finally {
-                setIsLoading(false);
+                if (!didAbort) {
+                    setIsLoading(false);
+                }
             }
         };
 

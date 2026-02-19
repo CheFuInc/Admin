@@ -32,7 +32,16 @@ export async function listApps(signal?: AbortSignal): Promise<FirebaseWebApp[]> 
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch apps: ${response.status} ${response.statusText}`);
+    let details = "";
+    try {
+      const payload = (await response.json()) as { error?: string };
+      if (payload?.error) {
+        details = ` - ${payload.error}`;
+      }
+    } catch {
+      // Ignore JSON parse failures for non-JSON error bodies.
+    }
+    throw new Error(`Failed to fetch apps: ${response.status} ${response.statusText}${details}`);
   }
 
   const payload = (await response.json()) as ListAppsResponse | FirebaseWebApp[];

@@ -8,9 +8,12 @@ export function getAdmin(): admin.app.App {
   }
 
   const serviceAccount = getServiceAccountFromEnv();
+  const credential = serviceAccount
+    ? admin.credential.cert(serviceAccount as admin.ServiceAccount)
+    : admin.credential.applicationDefault();
 
   return admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+    credential,
     // databaseURL: "https://<your-db>.firebaseio.com" // only if using RTDB
   });
 }

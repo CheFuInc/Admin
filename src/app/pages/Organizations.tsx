@@ -1,3 +1,5 @@
+import { useEffect, useMemo, useState } from "react";
+import { listApps, type FirebaseWebApp } from "../api/listApps";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import {
@@ -19,15 +21,72 @@ import {
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
 
-const orgs = [
-  { id: '1', name: 'Alpha Labs (ZA)', region: 'ZA', status: 'Active', projects: 2, users: 12, plan: 'Enterprise' },
-  { id: '2', name: 'Blue Orbit (EU)', region: 'EU', status: 'Trial', projects: 1, users: 4, plan: 'Pro' },
-  { id: '3', name: 'Savanna Tech (ZA)', region: 'ZA', status: 'Suspended', projects: 1, users: 1, plan: 'Starter' },
-  { id: '4', name: 'DrippyBanks Core', region: 'US', status: 'Active', projects: 3, users: 45, plan: 'Enterprise' },
-  { id: '5', name: 'CheFu Academy', region: 'ZA', status: 'Active', projects: 1, users: 890, plan: 'Pro' },
-];
-
 export function Organizations() {
+  const [apps, setApps] = useState<FirebaseWebApp[]>([]);
+  const [filter, setFilter] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let isMounted = true;
+
+    const run = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const data = await listApps(controller.signal);
+        if (isMounted) {
+          setApps(data);
+        }
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") {
+          return;
+        }
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : "Failed to load organizations.");
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void run();
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
+  }, []);
+
+  const filteredApps = useMemo(() => {
+    const query = filter.trim().toLowerCase();
+    if (!query) {
+      return apps;
+    }
+    return apps.filter((app) =>
+      [app.displayName, app.projectId, app.appId, app.name]
+        .filter(Boolean)
+        .some((value) => value?.toLowerCase().includes(query)),
+    );
+  }, [apps, filter]);
+
+  const statusBadgeVariant = (state?: string): "default" | "secondary" | "destructive" => {
+    if (!state) {
+      return "secondary";
+    }
+    const normalized = state.toLowerCase();
+    if (normalized === "active") {
+      return "default";
+    }
+    if (normalized === "deleted" || normalized === "disabled" || normalized === "suspended") {
+      return "destructive";
+    }
+    return "secondary";
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -47,7 +106,12 @@ export function Organizations() {
         <div className="flex items-center gap-2">
           <div className="relative w-64">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Filter organizations..." className="pl-8" />
+            <Input
+              placeholder="Filter organizations..."
+              className="pl-8"
+              value={filter}
+              onChange={(event) => setFilter(event.target.value)}
+            />
           </div>
           <Button variant="outline" size="icon">
             <Filter className="h-4 w-4" />
@@ -72,37 +136,55 @@ export function Organizations() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {orgs.map((org) => (
-              <TableRow key={org.id}>
-                <TableCell className="font-medium">{org.name}</TableCell>
-                <TableCell>{org.region}</TableCell>
-                <TableCell>
-                  <Badge variant={org.status === 'Active' ? 'default' : org.status === 'Trial' ? 'secondary' : 'destructive'}>
-                    {org.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>{org.plan}</TableCell>
-                <TableCell className="text-right">{org.projects}</TableCell>
-                <TableCell className="text-right">{org.users}</TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <span className="sr-only">Open menu</span>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem>View details</DropdownMenuItem>
-                      <DropdownMenuItem>Edit organization</DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+            {isLoading ? (
+              <TableRow>
+                <TableCell className="text-muted-foreground" colSpan={7}>
+                  Loading organizations...
                 </TableCell>
               </TableRow>
-            ))}
+            ) : error ? (
+              <TableRow>
+                <TableCell className="text-destructive" colSpan={7}>
+                  {error}
+                </TableCell>
+              </TableRow>
+            ) : filteredApps.length === 0 ? (
+              <TableRow>
+                <TableCell className="text-muted-foreground" colSpan={7}>
+                  No organizations found.
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredApps.map((app, index) => (
+                <TableRow key={app.name ?? app.appId ?? `${app.projectId ?? "project"}-${index}`}>
+                  <TableCell className="font-medium">{app.displayName || app.appId || "Unnamed app"}</TableCell>
+                  <TableCell>{app.projectId || "N/A"}</TableCell>
+                  <TableCell>
+                    <Badge variant={statusBadgeVariant(app.state)}>{app.state || "Unknown"}</Badge>
+                  </TableCell>
+                  <TableCell>N/A</TableCell>
+                  <TableCell className="text-right">1</TableCell>
+                  <TableCell className="text-right">N/A</TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Open menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem>View details</DropdownMenuItem>
+                        <DropdownMenuItem>Open in Firebase Console</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>

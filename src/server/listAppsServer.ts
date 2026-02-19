@@ -1,5 +1,4 @@
 import { google } from "googleapis";
-import type { ServiceAccount } from "../types/ServiceAccount";
 import { getServiceAccountFromEnv } from "../lib/serviceAccount";
 
 export interface FirebaseWebApp {
@@ -13,14 +12,31 @@ export interface FirebaseWebApp {
     platform?: string;
 }
 
+function resolveProjectId(explicitProjectId?: string): string {
+    return (
+        explicitProjectId?.trim() ||
+        process.env.FIREBASE_PROJECT_ID ||
+        process.env.GCLOUD_PROJECT ||
+        process.env.GOOGLE_CLOUD_PROJECT ||
+        ""
+    );
+}
+
 export async function fetchFirebaseWebApps(
-    projectId = "cheforumreal",
+    projectId?: string,
 ): Promise<FirebaseWebApp[]> {
-    const credentials: ServiceAccount = getServiceAccountFromEnv();
+    const resolvedProjectId = resolveProjectId(projectId);
+    if (!resolvedProjectId) {
+        throw new Error(
+            "Missing Firebase project id. Set FIREBASE_PROJECT_ID, GCLOUD_PROJECT, or GOOGLE_CLOUD_PROJECT.",
+        );
+    }
+
+    const credentials = getServiceAccountFromEnv();
 
     const auth = new google.auth.GoogleAuth({
-        credentials,
         scopes: ["https://www.googleapis.com/auth/firebase"],
+        ...(credentials ? { credentials } : {}),
     });
 
     const firebase = google.firebase({
@@ -28,9 +44,18 @@ export async function fetchFirebaseWebApps(
         auth,
     });
 
-    const res = await firebase.projects.webApps.list({
-        parent: `projects/${projectId}`,
-    });
+    const apps: FirebaseWebApp[] = [];
+    let pageToken: string | undefined;
 
-    return (res.data.apps as FirebaseWebApp[] | undefined) ?? [];
+    do {
+        const res = await firebase.projects.webApps.list({
+            parent: `projects/${resolvedProjectId}`,
+            pageToken,
+        });
+
+        apps.push(...((res.data.apps as FirebaseWebApp[] | undefined) ?? []));
+        pageToken = res.data.nextPageToken ?? undefined;
+    } while (pageToken);
+
+    return apps;
 }

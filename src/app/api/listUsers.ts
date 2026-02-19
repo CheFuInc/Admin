@@ -7,6 +7,9 @@ export interface ListedUser {
     displayName?: string
     disabled: boolean
     providerIds: string[]
+    multiFactor?: {
+        enrolledFactors?: Array<{ uid?: string; factorId?: string; displayName?: string }>
+    }
     metadata: {
         creationTime?: string
         lastSignInTime?: string

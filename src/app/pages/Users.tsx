@@ -46,18 +46,22 @@ export function Users() {
         const run = async () => {
             setIsLoading(true);
             setError(null);
+            let didAbort = false;
 
             try {
                 const result = await fetchUsers(controller.signal);
                 setUsers(result.users);
             } catch (err) {
                 if (err instanceof Error && err.name === "AbortError") {
+                    didAbort = true;
                     return;
                 }
 
                 setError(err instanceof Error ? err.message : "Failed to load users.");
             } finally {
-                setIsLoading(false);
+                if (!didAbort) {
+                    setIsLoading(false);
+                }
             }
         };
 
@@ -115,7 +119,7 @@ export function Users() {
                             <TableHead>Role</TableHead>
                             <TableHead>MFA</TableHead>
                             <TableHead>Status</TableHead>
-                            <TableHead className="w-12.5"></TableHead>
+                            <TableHead className="w-12"></TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -131,7 +135,7 @@ export function Users() {
                             const name = user.displayName?.trim() || user.email || user.uid;
                             const email = user.email || user.phoneNumber || "No email";
                             const role = userRole(user) as UserRole;
-                            const mfaEnabled = user.providerIds.includes("phone");
+                            const mfaEnabled = (user.multiFactor?.enrolledFactors?.length ?? 0) > 0;
 
                             return (
                                 <TableRow key={user.uid}>
